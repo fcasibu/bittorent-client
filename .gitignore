@@ -1,0 +1,6 @@
+dist
+
+# cache
+.prettier-cache
+
+node_modules
