@@ -3,7 +3,9 @@
     "version": "1.0.0",
     "main": "dist/index.js",
     "scripts": {
-        "build": "rimraf dist && tsc",
+        "build": "rimraf dist && npm run copy-torrent && tsc",
+        "copy-torrent": "copyfiles -u 1 ./src/puppy.torrent ./dist",
+        "dev": "nodemon --watch \"src/**\" --ext \"ts\" --exec \"tsx src/index.ts\"",
         "format": "prettier . --cache --cache-location ./.prettier-cache --cache-strategy content --write",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -11,8 +13,11 @@
     "license": "ISC",
     "devDependencies": {
         "@types/node": "^20.14.2",
+        "copyfiles": "^2.4.1",
+        "nodemon": "^3.1.3",
         "prettier": "^3.3.1",
         "rimraf": "^5.0.7",
+        "tsx": "^4.14.0",
         "typescript": "^5.4.5"
     }
 }
