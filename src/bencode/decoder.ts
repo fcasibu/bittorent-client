@@ -1,18 +1,11 @@
 import { assert } from '../utils';
-
-// Refactor utility functions and type for when creating encode
-type BencodeArray = Array<BencodeValue>;
-type BencodeString = string;
-type BencodeNumber = number;
-type BencodeDictionary<T = any> = {
-    [K in keyof T]: T[K];
-};
-
-type BencodeValue =
-    | BencodeString
-    | BencodeNumber
-    | BencodeArray
-    | BencodeDictionary;
+import type {
+    BencodeValue,
+    BencodeNumber,
+    BencodeString,
+    BencodeArray,
+    BencodeDictionary,
+} from './types';
 
 export class BencodeDecoder<T = BencodeValue> {
     private cursor = 0;
