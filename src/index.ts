@@ -1,22 +1,15 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { BencodeDecoder } from './bencode';
+import { decode } from './bencode';
+import { getPeers } from './tracker';
+import type { Torrent } from './types';
 
-const torrentFile = fs.readFileSync(path.join(__dirname, 'puppy.torrent'));
+async function main() {
+    const torrentFile = fs.readFileSync(path.join(__dirname, 'puppy.torrent'));
+    const torrent = decode<Torrent>(torrentFile);
+    const peers = await getPeers(torrent);
 
-interface BencodeData {
-    announce: Buffer;
-    'created by': Buffer;
-    'creation date': Buffer;
-    encoding: Buffer;
-    info: {
-        length: Buffer;
-        name: Buffer;
-        'piece length': Buffer;
-        pieces: Buffer;
-    };
+    console.log('peers', peers);
 }
 
-const decoder = new BencodeDecoder<BencodeData>(torrentFile);
-
-console.log(decoder.decode());
+void main();
