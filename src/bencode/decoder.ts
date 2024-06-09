@@ -1,21 +1,36 @@
 import { assert } from '../utils';
 
+// Refactor utility functions and type for when creating encode
+type BencodeArray = Array<BencodeValue>;
+type BencodeString = string;
+type BencodeNumber = number;
+type BencodeDictionary<T = any> = {
+    [K in keyof T]: T[K];
+};
+
 type BencodeValue =
-    | string
-    | number
-    | Array<BencodeValue>
-    | { [key: string]: BencodeValue };
+    | BencodeString
+    | BencodeNumber
+    | BencodeArray
+    | BencodeDictionary;
 
-export class BencodeDecoder {
+export class BencodeDecoder<T = BencodeValue> {
     private cursor = 0;
-    private input: string;
 
-    constructor(input: Readonly<Buffer>) {
-        this.input = input.toString('utf-8');
-    }
+    constructor(
+        private readonly input: Buffer,
+        private readonly encoding?: BufferEncoding,
+    ) {}
 
-    public decode(): BencodeValue {
-        return this.parseValue();
+    public decode(): T {
+        const parsedValue = this.parseValue() as T;
+
+        assert(
+            this.cursor === this.input.length,
+            'Incorrect bencode format was provided',
+        );
+
+        return parsedValue;
     }
 
     private parseValue(): BencodeValue {
@@ -35,50 +50,61 @@ export class BencodeDecoder {
             return this.parseDictionary();
         }
 
-        throw new Error(`Invalid character: ${this.peek()}`);
+        throw new Error(
+            `Unexpected character: ${this.peek()}/${String.fromCharCode(this.peek())}`,
+        );
     }
 
-    private parseInteger(): number {
+    private parseInteger(): BencodeNumber | Buffer {
         // skips the i character
         this.consume();
 
-        let chars = '';
+        const endIdx = this.input.indexOf('e', this.cursor);
+        assert(endIdx !== -1, 'Integer value must end with "e"');
 
-        while (!this.isEndingCharacter()) {
-            chars += this.consume();
-        }
+        const bytes = this.input.subarray(this.cursor, endIdx);
+        assert(bytes.length > 0, 'Expected an integer to be present');
+        this.cursor = endIdx;
 
         // skips the ending letter
         this.consume();
 
-        return parseInt(chars);
+        return this.encoding ? parseInt(bytes.toString('utf-8')) : bytes;
     }
 
-    private parseString(): string {
-        let num = '';
-        while (/\d/.test(this.peek())) {
-            num += this.consume();
-        }
+    private parseString(): BencodeString | Buffer {
+        const endIdx = this.input.indexOf(':', this.cursor, 'utf-8');
+        assert(endIdx !== -1, 'String length must be followed by ":"');
 
-        const length = parseInt(num);
+        const byteNum = this.input.subarray(this.cursor, endIdx);
+        this.cursor = endIdx;
+
+        const length = parseInt(byteNum.toString('utf-8'));
+
         assert(
             Number.isInteger(length),
-            `Expected an integer for the length of a string, found ${length}`,
+            `Expected an integer for the length of a string, found ${length}, string format must be length:content`,
         );
+        assert(length > 0, 'Expected length of a string to be more than 0');
+
         // skips the colon
         this.consume();
 
-        const chars = this.input.slice(this.cursor, this.cursor + length);
+        const bytes = this.input.subarray(this.cursor, this.cursor + length);
+        assert(
+            bytes.length === length,
+            `Expected string with the length of ${length}, found ${bytes.length}`,
+        );
         this.cursor += length;
 
-        return chars;
+        return this.encoding ? bytes.toString(this.encoding) : bytes;
     }
 
-    private parseList(): Array<BencodeValue> {
+    private parseList(): BencodeArray {
         // skips the l character
         this.consume();
 
-        const list: BencodeValue = [];
+        const list: BencodeArray = [];
 
         while (!this.isEndingCharacter()) {
             list.push(this.parseValue());
@@ -90,15 +116,19 @@ export class BencodeDecoder {
         return list;
     }
 
-    private parseDictionary(): { [key: string]: BencodeValue } {
+    private parseDictionary(): BencodeDictionary {
         // skips the d character
         this.consume();
 
-        const dict: { [key: string]: BencodeValue } = {};
+        const dict: BencodeDictionary = {};
 
         while (this.cursor < this.input.length && !this.isEndingCharacter()) {
-            const key = this.parseString();
+            const key = this.parseString().toString('utf-8');
             const value = this.parseValue();
+            assert(
+                value != null,
+                'Value of a key in a dictionary must not be empty',
+            );
 
             dict[key] = value;
         }
@@ -109,7 +139,7 @@ export class BencodeDecoder {
         return dict;
     }
 
-    private peek(): string {
+    private peek(): number {
         assert(
             this.cursor < this.input.length,
             `Cursor when peeking must not be more than or equal the input size, expected ${this.input.length - 1}, found ${this.cursor}`,
@@ -118,27 +148,29 @@ export class BencodeDecoder {
         return this.input[this.cursor]!;
     }
 
-    private consume(): string | undefined {
-        return this.input[this.cursor++];
+    private consume(): number {
+        const current = this.peek();
+        this.cursor += 1;
+        return current;
     }
 
     private isInt(): boolean {
-        return this.peek() === 'i';
+        return this.peek() === 105; // i
     }
 
     private isList(): boolean {
-        return this.peek() === 'l';
+        return this.peek() === 108; // l
     }
 
     private isDict(): boolean {
-        return this.peek() === 'd';
+        return this.peek() === 100; // d
     }
 
     private isString(): boolean {
-        return /\d/.test(this.peek());
+        return this.peek() >= 48 && this.peek() <= 57; // 0 - 9
     }
 
     private isEndingCharacter(): boolean {
-        return this.peek() === 'e';
+        return this.peek() === 101; // e
     }
 }
