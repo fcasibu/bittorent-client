@@ -4,10 +4,10 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "rimraf dist && npm run copy-torrent && tsc",
+        "type-check": "tsc --noEmit",
         "copy-torrent": "copyfiles -u 1 ./src/puppy.torrent ./dist",
         "dev": "nodemon --watch \"src/**\" --ext \"ts\" --exec \"tsx src/index.ts\"",
-        "format": "prettier . --cache --cache-location ./.prettier-cache --cache-strategy content --write",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "format": "prettier . --cache --cache-location ./.prettier-cache --cache-strategy content --write"
     },
     "author": "fcasibu",
     "license": "ISC",
