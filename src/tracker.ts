@@ -3,10 +3,12 @@ import { Buffer } from 'node:buffer';
 import type { Torrent } from './types';
 import { ResponseType } from './types';
 
-export const getPeers = (torrent: Torrent): Promise<unknown[]> => {
+export const getPeers = (
+    torrent: Torrent,
+    callback: (peers: unknown[]) => void,
+): void => {
     const socket = dgram.createSocket('udp4');
     const urlString = torrent.announce.toString('utf-8');
-    const { promise: peers, resolve } = Promise.withResolvers<unknown[]>();
 
     udpSend(socket, buildConnReq(), urlString);
 
@@ -21,7 +23,7 @@ export const getPeers = (torrent: Torrent): Promise<unknown[]> => {
             }
             case ResponseType.ANNOUNCE: {
                 const announceResp = parseAnnounceResp(msg);
-                resolve(announceResp.peers);
+                callback(announceResp.peers);
 
                 break;
             }
@@ -32,8 +34,6 @@ export const getPeers = (torrent: Torrent): Promise<unknown[]> => {
             }
         }
     });
-
-    return peers;
 };
 
 const udpSend = (

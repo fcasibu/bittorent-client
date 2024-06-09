@@ -1,19 +1,10 @@
 import { assert } from '../utils';
-import type {
-    BencodeValue,
-    BencodeNumber,
-    BencodeString,
-    BencodeArray,
-    BencodeDictionary,
-} from './types';
+import type { BencodeValue, BencodeArray, BencodeDictionary } from './types';
 
 export class BencodeDecoder<T = BencodeValue> {
     private cursor = 0;
 
-    constructor(
-        private readonly input: Buffer,
-        private readonly encoding?: BufferEncoding,
-    ) {}
+    constructor(private readonly input: Buffer) {}
 
     public decode(): T {
         const parsedValue = this.parseValue() as T;
@@ -48,7 +39,7 @@ export class BencodeDecoder<T = BencodeValue> {
         );
     }
 
-    private parseInteger(): BencodeNumber | Buffer {
+    private parseInteger(): number {
         // skips the i character
         this.consume();
 
@@ -62,17 +53,17 @@ export class BencodeDecoder<T = BencodeValue> {
         // skips the ending letter
         this.consume();
 
-        return this.encoding ? parseInt(bytes.toString('utf-8')) : bytes;
+        return parseInt(bytes.toString('ascii'));
     }
 
-    private parseString(): BencodeString | Buffer {
-        const endIdx = this.input.indexOf(':', this.cursor, 'utf-8');
+    private parseString(): Buffer {
+        const endIdx = this.input.indexOf(':', this.cursor, 'ascii');
         assert(endIdx !== -1, 'String length must be followed by ":"');
 
         const byteNum = this.input.subarray(this.cursor, endIdx);
         this.cursor = endIdx;
 
-        const length = parseInt(byteNum.toString('utf-8'));
+        const length = parseInt(byteNum.toString('ascii'));
 
         assert(
             Number.isInteger(length),
@@ -90,7 +81,7 @@ export class BencodeDecoder<T = BencodeValue> {
         );
         this.cursor += length;
 
-        return this.encoding ? bytes.toString(this.encoding) : bytes;
+        return bytes;
     }
 
     private parseList(): BencodeArray {
@@ -116,7 +107,7 @@ export class BencodeDecoder<T = BencodeValue> {
         const dict: BencodeDictionary = {};
 
         while (this.cursor < this.input.length && !this.isEndingCharacter()) {
-            const key = this.parseString().toString('utf-8');
+            const key = this.parseString().toString('ascii');
             const value = this.parseValue();
             assert(
                 value != null,
