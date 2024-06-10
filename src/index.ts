@@ -1,17 +1,13 @@
 import path from 'node:path';
-import fs from 'node:fs/promises';
-import { decode } from './bencode';
 import { getPeers } from './tracker';
-import type { Torrent } from './types';
+import { open } from './torrentParser';
 
-async function main() {
-    const torrentFile = await fs.readFile(
-        path.join(__dirname, 'puppy.torrent'),
-    );
-    const torrent = decode<Torrent>(torrentFile);
+function main() {
+    const torrent = open(path.join(__dirname, 'puppy.torrent'));
+    console.log(torrent);
     getPeers(torrent, (peers) => {
         console.log('peers', peers);
     });
 }
 
-void main();
+main();
