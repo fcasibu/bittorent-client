@@ -24,14 +24,16 @@ export interface ConnectionResponse {
     connectionId: Buffer;
 }
 
+export interface Peer {
+    ip: string;
+    port: number;
+}
+
 export interface AnnounceResponse {
     action: number;
     transactionId: number;
     interval: number;
     leechers: number;
     seeders: number;
-    peers: Array<{
-        ip: string;
-        port: number;
-    }>;
+    peers: Array<Peer>;
 }

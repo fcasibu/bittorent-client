@@ -1,17 +1,22 @@
 import dgram from 'node:dgram';
 import { Buffer } from 'node:buffer';
-import type { AnnounceResponse, ConnectionResponse, Torrent } from './types';
+import type {
+    AnnounceResponse,
+    ConnectionResponse,
+    Peer,
+    Torrent,
+} from './types';
 import { ResponseType } from './types';
 import crypto from 'node:crypto';
 import * as torrentParser from './torrentParser';
-import { generateId } from './utils/generateId';
+import { generatePeerId } from './utils/generatePeerId';
 import { group } from './utils/group';
 
 const DEFAULT_PORT = 6881;
 
 export const getPeers = (
     torrent: Torrent,
-    callback: (peers: unknown[]) => void,
+    callback: (peers: Array<Peer>) => void,
 ): void => {
     const socket = dgram.createSocket('udp4');
     const urlString = torrent.announce.toString('utf-8');
@@ -110,7 +115,7 @@ const buildAnnounceReq = (
     torrentParser.infoHash(torrent).copy(buf, 20);
 
     // peer id
-    generateId().copy(buf, 40);
+    generatePeerId().copy(buf, 40);
 
     // downloaded
     Buffer.alloc(8).copy(buf, 60);
