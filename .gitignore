@@ -1,4 +1,5 @@
 dist
+*.torrent
 
 # cache
 .prettier-cache

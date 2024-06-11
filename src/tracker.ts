@@ -7,6 +7,8 @@ import * as torrentParser from './torrentParser';
 import { generateId } from './utils/generateId';
 import { group } from './utils/group';
 
+const DEFAULT_PORT = 6881;
+
 export const getPeers = (
     torrent: Torrent,
     callback: (peers: unknown[]) => void,
@@ -49,7 +51,19 @@ const udpSend = (
     rawUrl: string,
 ): void => {
     const url = new URL(rawUrl);
-    socket.send(message, Number(url.port), url.host);
+    socket.send(message, Number(url.port) || DEFAULT_PORT, url.hostname);
+};
+
+const respType = (msg: Buffer): ResponseType => {
+    const action = msg.readUInt32BE(0);
+    switch (action) {
+        case 0:
+            return ResponseType.CONNECT;
+        case 1:
+            return ResponseType.ANNOUNCE;
+        default:
+            throw new Error(`Unknown response type: ${action}`);
+    }
 };
 
 const buildConnReq = (): Buffer => {
@@ -68,18 +82,6 @@ const buildConnReq = (): Buffer => {
     return buf;
 };
 
-const respType = (msg: Buffer): ResponseType => {
-    const action = msg.readUInt32BE(0);
-    switch (action) {
-        case 0:
-            return ResponseType.CONNECT;
-        case 1:
-            return ResponseType.ANNOUNCE;
-        default:
-            throw new Error(`Unknown response type: ${action}`);
-    }
-};
-
 const parseConnResp = (msg: Buffer): ConnectionResponse => {
     return {
         action: msg.readUInt32BE(0),
@@ -93,45 +95,45 @@ const buildAnnounceReq = (
     torrent: Torrent,
     port = 6881,
 ): Buffer => {
-    const buf = Buffer.alloc(98);
+    const buf = Buffer.allocUnsafe(102);
 
     // connection id
     connId.copy(buf, 0);
 
     // action
-    buf.writeUint32BE(1, 8);
+    buf.writeUInt32BE(1, 8);
 
     // transaction id
     crypto.randomBytes(8).copy(buf, 12);
 
     // info hash
-    torrentParser.infoHash(torrent).copy(buf, 16);
+    torrentParser.infoHash(torrent).copy(buf, 20);
 
     // peer id
-    generateId().copy(buf, 36);
+    generateId().copy(buf, 40);
 
     // downloaded
-    Buffer.alloc(8).copy(buf, 56);
+    Buffer.alloc(8).copy(buf, 60);
 
     // left
-    torrentParser.size(torrent).copy(buf, 64);
+    torrentParser.size(torrent).copy(buf, 66);
 
     // uploaded
-    Buffer.alloc(8).copy(buf, 72);
+    Buffer.alloc(8).copy(buf, 74);
 
     // event
-    buf.writeUInt32BE(0, 80);
+    buf.writeUInt32BE(0, 82);
     // ip address
-    buf.writeUInt32BE(0, 84);
+    buf.writeUInt32BE(0, 86);
 
     // key
-    crypto.randomBytes(4).copy(buf, 88);
+    crypto.randomBytes(4).copy(buf, 90);
 
     // num want
-    buf.writeUInt32BE(-1, 92);
+    buf.writeInt32BE(-1, 94);
 
     // port
-    buf.writeUInt32BE(port, 96);
+    buf.writeUInt32BE(port, 98);
 
     return buf;
 };
@@ -140,8 +142,9 @@ const parseAnnounceResp = (msg: Buffer): AnnounceResponse => {
     return {
         action: msg.readUInt32BE(0),
         transactionId: msg.readUInt32BE(4),
-        leechers: msg.readUInt32BE(8),
-        seeders: msg.readUInt32BE(12),
+        interval: msg.readUInt32BE(8),
+        leechers: msg.readUInt32BE(12),
+        seeders: msg.readUInt32BE(16),
         peers: group(msg.subarray(20), 6).map((address) => ({
             ip: address.subarray(0, 4).join('.'),
             port: address.readUInt16BE(4),

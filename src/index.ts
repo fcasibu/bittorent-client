@@ -1,10 +1,13 @@
-import path from 'node:path';
 import { getPeers } from './tracker';
 import { open } from './torrentParser';
+import { assert } from './utils';
 
 function main() {
-    const torrent = open(path.join(__dirname, 'puppy.torrent'));
-    console.log(torrent);
+    const filePath = process.argv[2];
+    assert(filePath, 'file path must not be empty');
+
+    const torrent = open(filePath);
+
     getPeers(torrent, (peers) => {
         console.log('peers', peers);
     });

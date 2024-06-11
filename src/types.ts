@@ -1,11 +1,13 @@
 export interface Torrent {
     announce: Buffer;
+    'announce-list': Array<Buffer>;
     'created by': Buffer;
     'creation date': number;
     encoding: Buffer;
     info: {
         length: number;
         name: Buffer;
+        files?: Array<{ length: number }>;
         'piece length': number;
         pieces: Buffer;
     };
@@ -25,6 +27,7 @@ export interface ConnectionResponse {
 export interface AnnounceResponse {
     action: number;
     transactionId: number;
+    interval: number;
     leechers: number;
     seeders: number;
     peers: Array<{

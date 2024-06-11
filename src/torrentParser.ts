@@ -12,5 +12,12 @@ export const infoHash = (torrent: Torrent): Buffer => {
     return crypto.createHash('sha1').update(info).digest();
 };
 
-export const size = (torrent: Torrent): Buffer =>
-    bignum.toBuffer(torrent.info.length);
+export const size = (torrent: Torrent): Buffer => {
+    const length = torrent.info.files
+        ? torrent.info.files
+              .map((file) => file.length)
+              .reduce((acc, curr) => acc + curr, 0)
+        : torrent.info.length;
+
+    return bignum.toBuffer(length);
+};
