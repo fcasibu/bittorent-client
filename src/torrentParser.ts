@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { Torrent } from './types';
+import type { Torrent } from './types';
 import { decode, encode } from './bencode';
 import bignum from 'bignum';
 
@@ -19,5 +19,5 @@ export const size = (torrent: Torrent): Buffer => {
               .reduce((acc, curr) => acc + curr, 0)
         : torrent.info.length;
 
-    return bignum.toBuffer(length);
+    return bignum.toBuffer(length, { size: 8, endian: 1 });
 };

@@ -9,8 +9,7 @@ import type {
 import { ResponseType } from './types';
 import crypto from 'node:crypto';
 import * as torrentParser from './torrentParser';
-import { generatePeerId } from './utils/generatePeerId';
-import { group } from './utils/group';
+import { generatePeerId, group } from './utils';
 
 const DEFAULT_PORT = 6881;
 
