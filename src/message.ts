@@ -128,3 +128,68 @@ export const buildRequest = (
 
     return buf;
 };
+
+export const buildPiece = (
+    index: number,
+    begin: number,
+    block: Buffer,
+): Buffer => {
+    const buf = Buffer.alloc(block.length + 13);
+
+    // len
+    buf.writeUInt32BE(block.length + 9, 0);
+
+    // id
+    buf.writeInt8(7, 4);
+
+    // index
+    buf.writeUInt32BE(index, 5);
+
+    // begin
+    buf.writeUInt32BE(begin, 9);
+
+    // length
+    block.copy(buf, 13);
+
+    return buf;
+};
+
+export const buildCancel = (
+    index: number,
+    begin: number,
+    length: number,
+): Buffer => {
+    const buf = Buffer.alloc(17);
+
+    // len
+    buf.writeUInt32BE(13, 0);
+
+    // id
+    buf.writeInt8(8, 4);
+
+    // index
+    buf.writeUInt32BE(index, 5);
+
+    // begin
+    buf.writeUInt32BE(begin, 9);
+
+    // length
+    buf.writeUInt32BE(length, 13);
+
+    return buf;
+};
+
+export const buildPort = (listenPort: number): Buffer => {
+    const buf = Buffer.alloc(9);
+
+    // len
+    buf.writeUInt32BE(4, 0);
+
+    // id
+    buf.writeInt8(9, 4);
+
+    // listren port
+    buf.writeUInt32BE(listenPort, 5);
+
+    return buf;
+};

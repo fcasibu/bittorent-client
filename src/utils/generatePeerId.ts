@@ -5,7 +5,7 @@ let id: Buffer | null = null;
 export const generatePeerId = (): Buffer => {
     if (!id) {
         id = crypto.randomBytes(20);
-        Buffer.from('-BT0001-').copy(id, 0);
+        Buffer.from('-TR2940-').copy(id, 0);
     }
 
     return id;
