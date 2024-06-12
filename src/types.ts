@@ -17,9 +17,20 @@ export interface Torrent {
     };
 }
 
-export enum ResponseType {
-    CONNECT = 'connect',
-    ANNOUNCE = 'announce',
+export interface Message {
+    size: number | null;
+    id: number | null;
+    payload: MessagePayload | Buffer | null;
+}
+
+interface BasePayload {
+    index: number;
+    begin: number;
+}
+
+export interface MessagePayload extends BasePayload {
+    block?: Buffer;
+    length?: number;
 }
 
 export interface ConnectionResponse {
@@ -40,4 +51,22 @@ export interface AnnounceResponse {
     leechers: number;
     seeders: number;
     peers: Array<Peer>;
+}
+
+export enum ResponseType {
+    CONNECT = 'connect',
+    ANNOUNCE = 'announce',
+}
+
+export enum MessageId {
+    CHOKE,
+    UNCHOKE,
+    INTERESTED,
+    NOT_INTERESTED,
+    HAVE,
+    BITFIELD,
+    REQUEST,
+    PIECE,
+    CANCEL,
+    PORT,
 }

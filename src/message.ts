@@ -1,7 +1,56 @@
 import { PSTR } from './constants';
 import * as torrentParser from './torrentParser';
-import type { Torrent } from './types';
-import { generatePeerId } from './utils';
+import type { MessagePayload, Message, Torrent } from './types';
+import { MessageId } from './types';
+import { assert, generatePeerId } from './utils';
+
+export const parse = (message: Buffer): Message => {
+    const size = message.length > 4 ? message.readUInt32BE(0) : null;
+    const id = message.length > 4 ? message.readInt8(4) : null;
+    const payload = message.length > 5 ? getPayload(message, id) : null;
+
+    return {
+        size,
+        id,
+        payload,
+    };
+};
+
+const getPayload = (
+    message: Buffer,
+    id: number | null,
+): MessagePayload | Buffer | null => {
+    if (!id) return null;
+
+    switch (id) {
+        case MessageId.PIECE:
+        case MessageId.REQUEST:
+        case MessageId.CANCEL: {
+            assert(
+                message.length >= 13 && message.length <= 17,
+                'message for piece/request/cancel should at least have 13 bytes',
+            );
+
+            const basePayload = {
+                index: message.readUInt32BE(5),
+                begin: message.readUInt32BE(9),
+            };
+
+            if (MessageId.PIECE) {
+                return { ...basePayload, block: message.subarray(13) };
+            }
+
+            return {
+                ...basePayload,
+                length: message.readUInt32BE(13),
+            };
+        }
+        default: {
+            const rest = message.subarray(5);
+            return rest.length ? rest : null;
+        }
+    }
+};
 
 // https://wiki.theory.org/BitTorrentSpecification#Handshake
 export const buildHandshake = (torrent: Torrent): Buffer => {
@@ -35,7 +84,7 @@ export const buildChoke = (): Buffer => {
     buf.writeUInt32BE(1, 0);
 
     // id
-    buf.writeInt8(0, 4);
+    buf.writeInt8(MessageId.CHOKE, 4);
 
     return buf;
 };
@@ -47,7 +96,7 @@ export const buildUnchoke = (): Buffer => {
     buf.writeUInt32BE(1, 0);
 
     // id
-    buf.writeInt8(1, 4);
+    buf.writeInt8(MessageId.UNCHOKE, 4);
 
     return buf;
 };
@@ -59,7 +108,7 @@ export const buildInterested = (): Buffer => {
     buf.writeUInt32BE(1, 0);
 
     // id
-    buf.writeInt8(2, 4);
+    buf.writeInt8(MessageId.INTERESTED, 4);
 
     return buf;
 };
@@ -71,7 +120,7 @@ export const buildNotInterested = (): Buffer => {
     buf.writeUInt32BE(1, 0);
 
     // id
-    buf.writeInt8(3, 4);
+    buf.writeInt8(MessageId.NOT_INTERESTED, 4);
 
     return buf;
 };
@@ -83,7 +132,7 @@ export const buildHave = (pieceIndex: number): Buffer => {
     buf.writeUInt32BE(5, 0);
 
     // id
-    buf.writeInt8(4, 4);
+    buf.writeInt8(MessageId.HAVE, 4);
 
     // piece index
     buf.writeUInt32BE(pieceIndex, 5);
@@ -98,7 +147,7 @@ export const buildBitfield = (bitfield: Buffer): Buffer => {
     buf.writeUInt32BE(bitfield.length + 1, 0);
 
     // id
-    buf.writeInt8(5, 4);
+    buf.writeInt8(MessageId.BITFIELD, 4);
 
     bitfield.copy(buf, 5);
 
@@ -116,7 +165,7 @@ export const buildRequest = (
     buf.writeUInt32BE(13, 0);
 
     // id
-    buf.writeInt8(6, 4);
+    buf.writeInt8(MessageId.REQUEST, 4);
 
     // index
     buf.writeUInt32BE(index, 5);
@@ -141,7 +190,7 @@ export const buildPiece = (
     buf.writeUInt32BE(block.length + 9, 0);
 
     // id
-    buf.writeInt8(7, 4);
+    buf.writeInt8(MessageId.PIECE, 4);
 
     // index
     buf.writeUInt32BE(index, 5);
@@ -149,7 +198,7 @@ export const buildPiece = (
     // begin
     buf.writeUInt32BE(begin, 9);
 
-    // length
+    // block
     block.copy(buf, 13);
 
     return buf;
@@ -166,7 +215,7 @@ export const buildCancel = (
     buf.writeUInt32BE(13, 0);
 
     // id
-    buf.writeInt8(8, 4);
+    buf.writeInt8(MessageId.CANCEL, 4);
 
     // index
     buf.writeUInt32BE(index, 5);
@@ -187,7 +236,7 @@ export const buildPort = (listenPort: number): Buffer => {
     buf.writeUInt32BE(4, 0);
 
     // id
-    buf.writeInt8(9, 4);
+    buf.writeInt8(MessageId.PORT, 4);
 
     // listren port
     buf.writeUInt32BE(listenPort, 5);
