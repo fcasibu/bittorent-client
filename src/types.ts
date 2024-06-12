@@ -1,13 +1,17 @@
 export interface Torrent {
     announce: Buffer;
+    comment?: Buffer;
+    encoding: Buffer;
     'announce-list': Array<Buffer>;
     'created by': Buffer;
     'creation date': number;
-    encoding: Buffer;
     info: {
         length: number;
         name: Buffer;
-        files?: Array<{ length: number }>;
+        files?: Array<{
+            length: number;
+            path: Array<Buffer>;
+        }>;
         'piece length': number;
         pieces: Buffer;
     };

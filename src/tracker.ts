@@ -9,9 +9,7 @@ import type {
 import { ResponseType } from './types';
 import crypto from 'node:crypto';
 import * as torrentParser from './torrentParser';
-import { generatePeerId, group } from './utils';
-
-const DEFAULT_PORT = 6881;
+import { assert, generatePeerId, group } from './utils';
 
 export const getPeers = (
     torrent: Torrent,
@@ -21,22 +19,44 @@ export const getPeers = (
     const urlString = torrent.announce.toString('utf-8');
 
     udpSend(socket, buildConnReq(), urlString);
+    let connectionId: Buffer | undefined;
 
-    socket.on('message', (msg) => {
+    socket.on('message', async (msg) => {
         switch (respType(msg)) {
             case ResponseType.CONNECT: {
-                const connResp = parseConnResp(msg);
-                const announceReq = buildAnnounceReq(
-                    connResp.connectionId,
-                    torrent,
+                assert(
+                    msg.length >= 16,
+                    'Message length must be at least 16 for CONNECT',
                 );
+
+                const connResp = parseConnResp(msg);
+                connectionId = connResp.connectionId;
+
+                const announceReq = buildAnnounceReq(connectionId, torrent);
                 udpSend(socket, announceReq, urlString);
 
                 break;
             }
             case ResponseType.ANNOUNCE: {
-                const announceResp = parseAnnounceResp(msg);
-                callback(announceResp.peers, torrent);
+                assert(
+                    msg.length >= 20,
+                    'Message length must be at least 20 for ANNOUNCE',
+                );
+
+                assert(
+                    connectionId,
+                    'Connection id must be present after connection',
+                );
+
+                const { peers, interval } = parseAnnounceResp(msg);
+
+                callback(peers, torrent);
+
+                if (await shouldReannounce(interval)) {
+                    const announceReq = buildAnnounceReq(connectionId, torrent);
+
+                    udpSend(socket, announceReq, urlString);
+                }
 
                 break;
             }
@@ -55,7 +75,7 @@ const udpSend = (
     rawUrl: string,
 ): void => {
     const url = new URL(rawUrl);
-    socket.send(message, Number(url.port) || DEFAULT_PORT, url.hostname);
+    socket.send(message, 0, message.length, Number(url.port), url.hostname);
 };
 
 const respType = (msg: Buffer): ResponseType => {
@@ -154,4 +174,14 @@ const parseAnnounceResp = (msg: Buffer): AnnounceResponse => {
             port: address.readUInt16BE(4),
         })),
     };
+};
+
+const shouldReannounce = async (interval: number): Promise<boolean> => {
+    const { promise, resolve } = Promise.withResolvers<boolean>();
+
+    setTimeout(() => {
+        resolve(true);
+    }, interval * 1000);
+
+    return promise;
 };

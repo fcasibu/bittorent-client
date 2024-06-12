@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import type { Torrent } from './types';
+import { Torrent } from './types';
 import { decode, encode } from './bencode';
 import bignum from 'bignum';
 

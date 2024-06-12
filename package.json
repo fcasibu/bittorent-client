@@ -19,10 +19,10 @@
         "tsx": "^4.14.0",
         "typescript": "^5.4.5"
     },
-    "engines": {
-        "node": ">=22.2.0"
-    },
     "dependencies": {
         "bignum": "^0.13.1"
+    },
+    "engines": {
+        "node": ">=22.2.0"
     }
 }

@@ -1,3 +1,4 @@
+import { PSTR } from './constants';
 import * as torrentParser from './torrentParser';
 import type { Torrent } from './types';
 import { generatePeerId } from './utils';
@@ -7,10 +8,10 @@ export const buildHandshake = (torrent: Torrent): Buffer => {
     const buf = Buffer.alloc(68);
 
     // pstrlen
-    buf.writeUInt8(19, 0);
+    buf.writeUInt8(PSTR.length, 0);
 
     // pstr
-    buf.write('BitTorrent protocol', 1);
+    buf.write(PSTR, 1);
 
     // reserved
     Buffer.alloc(8).copy(buf, 20);
@@ -91,7 +92,7 @@ export const buildHave = (pieceIndex: number): Buffer => {
 };
 
 export const buildBitfield = (bitfield: Buffer): Buffer => {
-    const buf = Buffer.alloc(9 + bitfield.length);
+    const buf = Buffer.alloc(bitfield.length + 9);
 
     // len
     buf.writeUInt32BE(bitfield.length + 1, 0);
@@ -109,7 +110,7 @@ export const buildRequest = (
     begin: number,
     length: number,
 ): Buffer => {
-    const buf = Buffer.alloc(9);
+    const buf = Buffer.alloc(17);
 
     // len
     buf.writeUInt32BE(13, 0);
