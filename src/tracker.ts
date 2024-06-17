@@ -8,12 +8,12 @@ import type {
 } from './types';
 import { ResponseType } from './types';
 import crypto from 'node:crypto';
-import * as torrentParser from './torrentParser';
 import { assert, generatePeerId, group } from './utils';
+import { infoHash, size } from './torrentParser';
 
 export const getPeers = (
     torrent: Torrent,
-    callback: (peers: Array<Peer>, torrent: Torrent) => void,
+    callback: (peers: Array<Peer>) => void,
 ): void => {
     const socket = dgram.createSocket('udp4');
     const urlString = torrent.announce.toString('utf-8');
@@ -50,7 +50,7 @@ export const getPeers = (
 
                 const { peers, interval } = parseAnnounceResp(msg);
 
-                callback(peers, torrent);
+                callback(peers);
 
                 if (await shouldReannounce(interval)) {
                     const announceReq = buildAnnounceReq(connectionId, torrent);
@@ -131,7 +131,7 @@ const buildAnnounceReq = (
     crypto.randomBytes(4).copy(buf, 12);
 
     // info hash
-    torrentParser.infoHash(torrent).copy(buf, 16);
+    infoHash(torrent).copy(buf, 16);
 
     // peer id
     generatePeerId().copy(buf, 36);
@@ -140,7 +140,7 @@ const buildAnnounceReq = (
     Buffer.alloc(8).copy(buf, 56);
 
     // left
-    torrentParser.size(torrent).copy(buf, 64);
+    size(torrent).copy(buf, 64);
 
     // uploaded
     Buffer.alloc(8).copy(buf, 72);

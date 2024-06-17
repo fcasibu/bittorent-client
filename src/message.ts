@@ -27,8 +27,8 @@ const getPayload = (
         case MessageId.REQUEST:
         case MessageId.CANCEL: {
             assert(
-                message.length >= 13 && message.length <= 17,
-                'message for piece/request/cancel should at least have 13 bytes',
+                message.length >= 13,
+                `message for piece/request/cancel should at least have 13 bytes, received ${message.length}`,
             );
 
             const basePayload = {

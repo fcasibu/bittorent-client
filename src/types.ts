@@ -70,3 +70,9 @@ export enum MessageId {
     CANCEL,
     PORT,
 }
+
+export interface PieceBlock {
+    index: number;
+    begin: number;
+    block: Buffer;
+}

@@ -8,8 +8,11 @@ function main(): void {
     assert(filePath, 'file path must not be empty');
 
     const torrent = open(filePath);
+    const downloadPath = torrent.info.name.toString('utf-8');
 
-    getPeers(torrent, download);
+    getPeers(torrent, (peers) => {
+        download(peers, torrent, downloadPath);
+    });
 }
 
 main();
