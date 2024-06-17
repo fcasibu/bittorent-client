@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import type { Torrent } from './types';
 import { decode, encode } from './bencode';
 import bignum from 'bignum';
+import { getSum } from './utils/getSum';
 
 export const BLOCK_LENGTH = Math.pow(2, 14);
 
@@ -20,9 +21,7 @@ export const infoHash = (torrent: Torrent): Buffer => {
 
 export const size = (torrent: Torrent): Buffer => {
     const length = torrent.info.files
-        ? torrent.info.files
-              .map((file) => file.length)
-              .reduce((acc, curr) => acc + curr, 0)
+        ? getSum(torrent.info.files.map((file) => file.length))
         : torrent.info.length;
 
     return bignum.toBuffer(length, { size: 8, endian: 1 });
